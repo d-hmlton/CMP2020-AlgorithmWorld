@@ -89,17 +89,18 @@ class World():
     def getGameState(self):
         return self.status
 
+    #Modified these three methods to take a given location and check
     # Does Link feel the wind?
-    def linkWindy(self):
-        return isWindy(lLoc)
+    def linkWindy(self, location):
+        return self.isWindy(location)
 
     # Does Link smell the Wumpus?
-    def linkSmelly(self):
-        return isSmelly(lLoc)
+    def linkSmelly(self, location):
+        return self.isSmelly(location)
 
     # Does Link see the glitter?
-    def linkGlitter(self):
-        return isGlitter(lLoc)
+    def linkGlitter(self, location):
+        return self.isGlitter(location)
  
     #
     # Methods
@@ -267,31 +268,32 @@ class World():
             self.wLoc[i].y = utils.checkBounds(self.maxY, self.wLoc[i].y - yChange)
 
 
-    # Some additional information about the world which may be useful
+            # Some additional information about the world which may be useful
     # for planning how to move Link.
     
     # Is the given location smelly?
     #
     # A location is smelly if it is next to the Wumpus
     def isSmelly(self, location):
-        if isAjacent(self.Wloc, location):
+        if self.isAjacent(self.Wloc, location):
             return True
         else:
             return False
 
     # Is the given location windy? 
     def isWindy(self, location):
-        if isAjacent(self.ploc, location):
+        if self.isAjacent(self.ploc, location):
             return True
         else:
             return False
 
      # Does the given location glitter? 
     def isGlitter(self, location):
-        if isAjacent(self.gloc, location):
+        if self.isAjacent(self.gloc, location):
             return True
         else:
             return False
+
                 
     # Is the location loc next to any of the locations in locList.
     #

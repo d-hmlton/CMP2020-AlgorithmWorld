@@ -14,6 +14,7 @@ import world
 import random
 import utils
 from utils import Directions
+from node import Node
 
 class Link():
 
@@ -47,3 +48,36 @@ class Link():
             return Directions.NORTH
         if nextGold.y < myPosition.y:
             return Directions.SOUTH
+
+    def depthFirst(self):
+        start = self.gameWorld.getLinkLocation()
+        goal = self.gameWorld.getGoldLocation()
+
+        node = Node(start, None, None, 0)
+
+        frontiers = [node] 
+        explored = []
+        
+        while frontiers:
+            node = frontiers[-1]
+            frontiers = frontiers[:-1]
+
+            explored.append(node)
+
+            moveDict = {
+                Directions.NORTH: [0, 1],
+                Directions.SOUTH: [0, -1],
+                Directions.EAST: [1, 0],
+                Directions.WEST: [-1, 0]
+            }
+
+            validMoves = []
+            locationChange = []
+
+            for direction in self.moves:
+                locationChange = moveDict[direction]
+            
+
+            #add list of valid actions
+
+
