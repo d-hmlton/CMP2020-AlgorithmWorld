@@ -50,20 +50,25 @@ class Link():
             return Directions.SOUTH
 
     def depthFirst(self):
-        start = self.gameWorld.getLinkLocation()
-        goal = self.gameWorld.getGoldLocation()
+        # Method to perform depth-first search from the Link object to find the Gold objects.
 
-        node = Node(start, None, None, 0)
+        start = self.gameWorld.getLinkLocation() #Defines starting location
+        goal = self.gameWorld.getGoldLocation() #Defines location of (first) gold
 
-        frontiers = [node] 
-        explored = []
+        node = Node(start, None, None, 0) #Defining initial node (no parent, no action, depth = 0)
+
+        frontiers = [node] #List of possible moves you can make from the present location
+        explored = [] #List of locations you've explored / examined
         
+        #Loops through every item in frontiers
         while frontiers:
-            node = frontiers[-1]
-            frontiers = frontiers[:-1]
+            node = frontiers[-1] #Grab the last item from frontiers
+            frontiers = frontiers[:-1] #Remove the last item from frontiers
 
-            explored.append(node)
+            explored.append(node) #Puts the removed item at the end of explored
 
+            # -Defining all the actions that Link can take-
+            #Dictionary tying directions to coordinate changes. (Will probably need to move this and define elsewhere later)
             moveDict = {
                 Directions.NORTH: [0, 1],
                 Directions.SOUTH: [0, -1],
@@ -71,12 +76,23 @@ class Link():
                 Directions.WEST: [-1, 0]
             }
 
-            validMoves = []
-            locationChange = []
+            validMoves = [] #List to store the valid moves
+            newLocation = [] #Int list to store locations to then add to validMoves
+            currentLocation = self.gameWorld.getLinkLocation() #Fetches current location
 
+            #Storing max bound values as temp vars (grabbing them all the time is inefficient)
+            maxX = self.gameWorld.maxX
+            maxY = self.gameWorld.maxY
+
+            #For loop runs through N/S/E/W (so, four times)
             for direction in self.moves:
-                locationChange = moveDict[direction]
-            
+                newLocation = currentLocation + moveDict[direction] #Retrieves coord changes from dict; Saves the new location to 'location'
+
+                #--Inbound Checker--
+                newLocation.x = utils.checkBounds(maxX, newLocation.x) #Sends x coord to "checkBounds", which will return inbound coord if out of bounds
+                newLocation.y = utils.checkBounds(maxY, newLocation.y) #Same as above for y
+                if newLocation.x == currentLocation.x or newLocation.y == newLocation.y:
+                    continue #If either coord is now unchanged, recognises this as an invalid move, and moves on to next move (if there is one)
 
             #add list of valid actions
 

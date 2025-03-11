@@ -91,16 +91,16 @@ class World():
 
     #Modified these three methods to take a given location and check
     # Does Link feel the wind?
-    def linkWindy(self, location):
-        return self.isWindy(location)
+    def linkWindy(self):
+        return self.isWindy(self.lLoc)
 
     # Does Link smell the Wumpus?
-    def linkSmelly(self, location):
-        return self.isSmelly(location)
+    def linkSmelly(self):
+        return self.isSmelly(self.lLoc)
 
     # Does Link see the glitter?
-    def linkGlitter(self, location):
-        return self.isGlitter(location)
+    def linkGlitter(self):
+        return self.isGlitter(self.lLoc)
  
     #
     # Methods
