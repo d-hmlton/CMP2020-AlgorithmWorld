@@ -78,7 +78,6 @@ class Link():
 
             validMoves = [] #List to store the valid moves
             newLocation = [] #Int list to store locations to then add to validMoves
-            currentLocation = self.gameWorld.getLinkLocation() #Fetches current location
 
             #Storing max bound values as temp vars (grabbing them all the time is inefficient)
             maxX = self.gameWorld.maxX
@@ -86,14 +85,42 @@ class Link():
 
             #For loop runs through N/S/E/W (so, four times)
             for direction in self.moves:
-                newLocation = currentLocation + moveDict[direction] #Retrieves coord changes from dict; Saves the new location to 'location'
+                newLocation = node.location + moveDict[direction] #Retrieves coord changes from dict; Saves location to 'location'
+                #'node.location' = the current location
 
                 #--Inbound Checker--
-                newLocation.x = utils.checkBounds(maxX, newLocation.x) #Sends x coord to "checkBounds", which will return inbound coord if out of bounds
+                newLocation.x = utils.checkBounds(maxX, newLocation.x) #Sends x to "checkBounds", returns inbound coord if out of bounds
                 newLocation.y = utils.checkBounds(maxY, newLocation.y) #Same as above for y
-                if newLocation.x == currentLocation.x or newLocation.y == newLocation.y:
-                    continue #If either coord is now unchanged, recognises this as an invalid move, and moves on to next move (if there is one)
+                if newLocation.x == node.location.x or newLocation.y == node.location.y:
+                    continue #If either coord is now unchanged, recognises this as an invalid move, and moves on to next move
+
+                #--Wumpus Checker--
+                if self.gameWorld.isSmelly(newLocation):
+                    continue #If the location is in the path of a 'wumpus', it can't move there, so move to next move
+
+                #--Pit Checker--
+                if self.gameWorld.isWindy(newLocation):
+                    continue #If the location is a pit, it can't move there, so move to next move
+
+                #--Gold Checker--
+                if self.gameWorld.isGlitter(newLocation):
+                    validMoves = [direction] #If location is gold, moving there takes priority
+                    #(For the record, if gold is where a wumpus path also is, the earlier placement of wumpus check means it won't
+                    #  know the gold is there and will focus on avoiding wumpus. This may cause unexpected behaviour!)
+                    break #No need to look for other valid moves
+
+                #If passed all previous checks...
+                validMoves.append(direction)
+
+            #For each move Link can take:
+            for move in validMoves:
+                child = Node((node.location + moveDict[move]), node.location, move, node.depth + 1)
+                #The Node class overrides 'equals': two nodes are equal if location is the same (which means we can use "not in" here).
+                if child not in explored and child not in frontiers: 
+                    # check for goal
+                    if child.isGoal(goal):
+                        print("Found goal")
+                        #return self.recoverPlan(child) #NOT WORKING
+                    frontiers.append(child) 
 
             #add list of valid actions
-
-
