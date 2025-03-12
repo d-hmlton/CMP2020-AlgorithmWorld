@@ -140,7 +140,7 @@ class World():
         # Set the looted flag to False
         self.looted = False
         # Implement non-determinism if appropriate
-        direction = self.probabilisticMotion(direction)
+        # direction = self.probabilisticMotion(direction)
         if direction == Directions.NORTH:
             if self.lLoc.y < self.maxY:
                 self.lLoc.y = self.lLoc.y + 1
@@ -275,21 +275,21 @@ class World():
     #
     # A location is smelly if it is next to the Wumpus
     def isSmelly(self, location):
-        if self.isAjacent(self.Wloc, location):
+        if self.isAjacent(self.wLoc, location):
             return True
         else:
             return False
 
     # Is the given location windy? 
     def isWindy(self, location):
-        if self.isAjacent(self.ploc, location):
+        if self.isAjacent(self.pLoc, location):
             return True
         else:
             return False
 
      # Does the given location glitter? 
     def isGlitter(self, location):
-        if self.isAjacent(self.gloc, location):
+        if self.isAjacent(self.gLoc, location):
             return True
         else:
             return False
@@ -301,7 +301,7 @@ class World():
     # x coordinate and have a y coordinate that differs by 1, or in
     # the same y coordinate and have an x coordinate that differs by
     # one.
-    def isAjacent(locList, loc):
+    def isAjacent(self, locList, loc):
         for aloc in locList:
             # Ajacency holds if it holds for any location in locList.
             if aloc.x == loc.x:

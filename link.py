@@ -26,40 +26,71 @@ class Link():
 
         # What moves are possible.
         self.moves = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]
+
+        #Variables storing the path Link takes to find gold
+        self.path = []
+        self.path_index = 0
         
     def makeMove(self):
-        # This is the function you need to define
-        #
-        # For now we have a placeholder, which always moves Link
-        # directly towards the gold.
+        #Method to return the next action that Link should take.
+        #Asks searching algorithm(s) to return a path, and saves it to "self.path". Then returns the location in that path that
+        # corresponds to "self.path_index".
+
+        #If a path doesn't already exist, it will be created here.
+        if not self.path:
+            self.path = self.depthFirst()
+            if len(self.path) == 0:
+                quit()
+            print(len(self.path))
+
+        #If Link runs into a wumpus, the program must respond to that in a dynamic way.
+        #For depth-first, the remaining locations on the original path will be forgotten, and depth-first will be called again.
+        if self.gameWorld.linkSmelly():
+            self.path = self.path[:self.path_index]
+            self.path.extend(self.depthFirst())
+
+        self.path_index = self.path_index + 1 #Increment the index + 1. Has to be done before the return
+        return self.path[self.path_index - 1] #Returns the next location for Link to move to
         
         # Get the location of the gold.
-        allGold = self.gameWorld.getGoldLocation()
-        if len(allGold) > 0:
-            nextGold = allGold[0]
-        myPosition = self.gameWorld.getLinkLocation()
+        #allGold = self.gameWorld.getGoldLocation()
+       # if len(allGold) > 0:
+          #  nextGold = allGold[0]
+       # myPosition = self.gameWorld.getLinkLocation()
         # If not at the same x coordinate, reduce the difference
-        if nextGold.x > myPosition.x:
-            return Directions.EAST
-        if nextGold.x < myPosition.x:
-            return Directions.WEST
+       # if nextGold.x > myPosition.x:
+      #      return Directions.EAST
+       # if nextGold.x < myPosition.x:
+      #      return Directions.WEST
         # If not at the same y coordinate, reduce the difference
-        if nextGold.y > myPosition.y:
-            return Directions.NORTH
-        if nextGold.y < myPosition.y:
-            return Directions.SOUTH
+      #  if nextGold.y > myPosition.y:
+       #     return Directions.NORTH
+      #  if nextGold.y < myPosition.y:
+      #      return Directions.SOUTH
 
     def depthFirst(self):
         # Method to perform depth-first search from the Link object to find the Gold objects.
 
         start = self.gameWorld.getLinkLocation() #Defines starting location
-
         allGold = self.gameWorld.getGoldLocation() #Grabs a list of all the gold
         if len(allGold) > 0:
             goal = allGold[0] #Takes the first gold in the list, sets it as the "goal state"
         else:
             print("No gold present?") #This is if the length of allGold is 0 from the very beginning.
             return []                 # This shouldn't happen, so the program ends early
+        
+        # -Defining all the actions that Link can take-
+        #Dictionary tying directions to coordinate changes. (Will probably need to move this and define elsewhere later)
+        moveDict = {
+            Directions.NORTH: [0, 1],
+            Directions.SOUTH: [0, -1],
+            Directions.EAST: [1, 0],
+            Directions.WEST: [-1, 0]
+        }
+
+        #Storing max bound values as temp vars (grabbing them all the time is inefficient)
+        maxX = self.gameWorld.maxX
+        maxY = self.gameWorld.maxY
 
         node = Node(start, None, None, 0) #Defining initial node (no parent, no action, depth = 0)
 
@@ -73,31 +104,20 @@ class Link():
 
             explored.append(node) #Puts the removed item at the end of explored
 
-            # -Defining all the actions that Link can take-
-            #Dictionary tying directions to coordinate changes. (Will probably need to move this and define elsewhere later)
-            moveDict = {
-                Directions.NORTH: [0, 1],
-                Directions.SOUTH: [0, -1],
-                Directions.EAST: [1, 0],
-                Directions.WEST: [-1, 0]
-            }
-
             validMoves = [] #List to store the valid moves
-            newLocation = [] #Int list to store locations to then add to validMoves
-
-            #Storing max bound values as temp vars (grabbing them all the time is inefficient)
-            maxX = self.gameWorld.maxX
-            maxY = self.gameWorld.maxY
+            newLocation = utils.Pose() #Int list to store locations to then add to validMoves
 
             #For loop runs through N/S/E/W (so, four times)
             for direction in self.moves:
-                newLocation = node.location + moveDict[direction] #Retrieves coord changes from dict; Saves location to 'location'
+                newLocation = utils.Pose() #Int list to store locations to then add to validMoves
+                newLocation.x = node.location.x + moveDict[direction][0] #Retrieves coord changes from dict; Saves location to 'location'
+                newLocation.y = node.location.y + moveDict[direction][1]
                 #'node.location' = the current location
 
                 #--Inbound Checker--
                 newLocation.x = utils.checkBounds(maxX, newLocation.x) #Sends x to "checkBounds", returns inbound coord if out of bounds
                 newLocation.y = utils.checkBounds(maxY, newLocation.y) #Same as above for y
-                if newLocation.x == node.location.x or newLocation.y == node.location.y:
+                if newLocation.x == node.location.x and newLocation.y == node.location.y:
                     continue #If either coord is now unchanged, recognises this as an invalid move, and moves on to next move
 
                 #--Wumpus Checker--
@@ -111,25 +131,27 @@ class Link():
                     continue #If the location is a pit, it can't move there, so move to next move
 
                 #If passed all previous checks...
-                validMoves.append(direction)
+                validMoves.append([newLocation, direction]) #saves location AND direction
+            
+            #If 'validMoves' is empty
+            if len(validMoves) == 0:
+                print("Link has no valid moves! It's all over!")
 
             #For each move Link can take:
             for move in validMoves:
                 #Defines a child node in that direction
-                child = Node((node.location + moveDict[move]), node.location, move, node.depth + 1)
+                #move[0] = new location; move[1] = direction being moved (N/S/E/W)
+                child = Node(move[0], node.location, move[1], node.depth + 1)
                 #The Node class overrides 'equals': two nodes are equal if location is the same (which means we can use "not in" here).
                 if child not in explored and child not in frontiers: 
                     # check for goal
-                    if child.isGoal(goal):
-                        if len(allGold) <= 0: #If no gold is left in the world
-                            print("All gold found!")
-                            return self.recoverPlan(child) #Calls a method to get the path taken to find the gold
-                        else: #If there's still gold left in the world
-                            allGold = allGold[1:] #Removes first item / only keeps items from index 1 to end of list
-                            goal = allGold[0] #Overwrites the goal state with the next gold
+                    if child.location == goal:
+                        print("Gold found!")
+                        return self.recoverPlan(child) #Calls a method to grab the path to the gold, then returns it
 
-                        #return self.recoverPlan(child) #NOT WORKING
-                    frontiers.append(child) 
+                    
+                    frontiers.append(child) #If the node isn't the goal state, add to frontiers
+                print(child)
 
         print("Failed to find a path")
         return []

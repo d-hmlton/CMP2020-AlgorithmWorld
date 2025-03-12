@@ -30,6 +30,6 @@ class Node():
     def __eq__(self, other):
         """Overrides the default implementation"""
         if isinstance(other, Node):
-            return (self.location == other.location)
+            return (self.location.x == other.location.x and self.location.y == other.location.y)
         return False    
         
