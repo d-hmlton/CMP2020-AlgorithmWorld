@@ -82,12 +82,9 @@ class Link():
         start = self.gameWorld.getLinkLocation() #Defines starting location
         if len(self.allGold) > 0:
             goal = self.allGold[0] #Takes the first gold in the list, sets it as the "goal state"
-            print(self.allGold[0].x, self.allGold[0].y)
         else:
             print("No gold present?") #This is if the length of allGold is 0 from the very beginning.
             return []                 # This shouldn't happen, so the program ends early
-        allPits = self.gameWorld.getPitsLocation()
-        allWumpi = self.gameWorld.getWumpusLocation()
         
         # -Defining all the actions that Link can take-
         #Dictionary tying directions to coordinate changes. (Will probably need to move this and define elsewhere later)
@@ -127,7 +124,7 @@ class Link():
                 #--Inbound Checker--
                 newLocation.x = utils.checkBounds(maxX, newLocation.x) #Sends x to "checkBounds", returns inbound coord if out of bounds
                 newLocation.y = utils.checkBounds(maxY, newLocation.y) #Same as above for y
-                if newLocation.x == node.location.x and newLocation.y == node.location.y:
+                if utils.sameLocation(newLocation, node.location):
                     continue #If either coord is now unchanged, recognises this as an invalid move, and moves on to next move
 
                 #--Wumpus Checker--
@@ -135,10 +132,17 @@ class Link():
                     continue #If the location is in the path of a 'wumpus', it can't move there, so move to next move
                     #(For the record, if gold is where a wumpus path also is, the earlier placement of wumpus check means it won't
                     #  know the gold is there and will focus on avoiding wumpus. This may cause unexpected behaviour!)
+                for wumpus in self.gameWorld.getWumpusLocation():
+                    if utils.sameLocation(move[0], wumpus):
+                        print(move[1], "would be on a wumpus!")
+                        print(wumpus.x, wumpus.y)
+                        continue
 
-                #--Pit Checker--
-                #if self.gameWorld.isWindy(newLocation):
-                    #continue #If the location is a pit, it can't move there, so move to next move
+                #If the location is a pit, it can't move there, so move to next move
+                for pit in self.gameWorld.getPitsLocation():
+                    if utils.sameLocation(move[0], pit):
+                        print(move[1], "is a pit! You can't go there!")
+                        continue
 
                 #If passed all previous checks...
                 validMoves.append([newLocation, direction]) #saves location AND direction
@@ -152,29 +156,11 @@ class Link():
             for move in validMoves:
                 #Defines a child node in that direction
                 #move[0] = new location; move[1] = direction being moved (N/S/E/W)
-
-                #If the location is in the path of a 'wumpus', it can't move there, so move to next move
-                if self.gameWorld.isSmelly(move[0]):
-                    print(move[1], "would be too close to a wumpus!")
-                    continue
-
-                for wumpus in allWumpi:
-                    if move[0].x == wumpus.x and move[0].y == wumpus.y:
-                        print(move[1], "would be on a wumpus! Wait, you're that close to a wumpus??")
-                        print(wumpus.x, wumpus.y)
-                        continue
-
-                #If the location is a pit, it can't move there, so move to next move
-                for pit in allPits:
-                    if move[0].x == pit.x and move[0].y == pit.y:
-                        print(move[1], "is a pit! You can't go there!")
-                        continue
-
                 child = Node(move[0], node, move[1], node.depth + 1)
                 #The Node class overrides 'equals': two nodes are equal if location is the same (which means we can use "not in" here).
                 if child not in explored and child not in frontiers: 
                     # check for goal
-                    if child.location.x == goal.x and child.location.y == goal.y:
+                    if utils.sameLocation(child.location, goal):
                         return self.recoverPlan(child) #Calls a method to grab the path to the gold, then returns it
 
                     frontiers.append(child) #If the node isn't the goal state, add to frontiers     
