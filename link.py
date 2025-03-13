@@ -30,6 +30,10 @@ class Link():
         #Variables storing the path Link takes to find gold
         self.path = []
         self.path_index = 0
+
+        #Variable storing gold locations because the normal method is bugged?
+        self.allGold = self.gameWorld.getGoldLocation()
+        self.goldGot = False
         
     def makeMove(self):
         #Method to return the next action that Link should take.
@@ -43,11 +47,25 @@ class Link():
                 quit()
             print(len(self.path))
 
+        #Makes a new path if makeMove is called after gold is already found.
+        if self.goldGot == True:
+            self.goldGot = False #Resets the gold check
+            self.path = self.path[:self.path_index]
+            self.path += self.depthFirst()
+
+        #If Link is standing on gold, but makeMove has been called again.
+        #This means there are a number of gold present
+        if self.gameWorld.linkGlitter():
+            self.allGold.pop(0)
+            self.goldGot = True
+
         #If Link runs into a wumpus, the program must respond to that in a dynamic way.
         #For depth-first, the remaining locations on the original path will be forgotten, and depth-first will be called again.
-        if self.gameWorld.linkSmelly():
+        if self.gameWorld.linkSmelly() and self.goldGot == False:
             self.path = self.path[:self.path_index]
-            self.path.extend(self.depthFirst())
+            self.path += self.depthFirst()
+            if len(self.path) == self.path_index:
+                quit()
 
         self.path_index = self.path_index + 1 #Increment the index + 1. Has to be done before the return
         return self.path[self.path_index - 1] #Returns the next location for Link to move to
@@ -72,9 +90,9 @@ class Link():
         # Method to perform depth-first search from the Link object to find the Gold objects.
 
         start = self.gameWorld.getLinkLocation() #Defines starting location
-        allGold = self.gameWorld.getGoldLocation() #Grabs a list of all the gold
-        if len(allGold) > 0:
-            goal = allGold[0] #Takes the first gold in the list, sets it as the "goal state"
+        if len(self.allGold) > 0:
+            goal = self.allGold[0] #Takes the first gold in the list, sets it as the "goal state"
+            print(self.allGold[0].x, self.allGold[0].y)
         else:
             print("No gold present?") #This is if the length of allGold is 0 from the very beginning.
             return []                 # This shouldn't happen, so the program ends early
@@ -136,22 +154,31 @@ class Link():
             #If 'validMoves' is empty
             if len(validMoves) == 0:
                 print("Link has no valid moves! It's all over!")
+                return []
 
             #For each move Link can take:
             for move in validMoves:
                 #Defines a child node in that direction
                 #move[0] = new location; move[1] = direction being moved (N/S/E/W)
-                child = Node(move[0], node.location, move[1], node.depth + 1)
+
+                #If the location is in the path of a 'wumpus', it can't move there, so move to next move
+                if self.gameWorld.isSmelly(move[0]):
+                    print("Wumpus spot at", move[0].x, move[0].y)
+                    continue
+
+                #If the location is a pit, it can't move there, so move to next move
+                if self.gameWorld.isWindy(move[0]):
+                    print("Pit at", move[0].x, move[0].y)
+                    continue
+
+                child = Node(move[0], node, move[1], node.depth + 1)
                 #The Node class overrides 'equals': two nodes are equal if location is the same (which means we can use "not in" here).
                 if child not in explored and child not in frontiers: 
                     # check for goal
-                    if child.location == goal:
-                        print("Gold found!")
+                    if child.location.x == goal.x and child.location.y == goal.y:
                         return self.recoverPlan(child) #Calls a method to grab the path to the gold, then returns it
 
-                    
-                    frontiers.append(child) #If the node isn't the goal state, add to frontiers
-                print(child)
+                    frontiers.append(child) #If the node isn't the goal state, add to frontiers     
 
         print("Failed to find a path")
         return []
