@@ -36,7 +36,7 @@ def main():
     # Now run...
     while not(gameWorld.isEnded()):
         gameWorld.updateLink(player.makeMove())
-        gameWorld.updateWumpus()
+        #gameWorld.updateWumpus()
         # Uncomment this for a printout of world state every step
         # utils.printGameState(gameWorld)
         display.update()

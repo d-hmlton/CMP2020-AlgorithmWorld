@@ -33,7 +33,7 @@ class Link():
 
         #Variable storing gold locations because the normal method is bugged?
         self.allGold = self.gameWorld.getGoldLocation()
-        self.goldGot = False
+        self.goldNum = len(self.gameWorld.getGoldLocation())
         
     def makeMove(self):
         #Method to return the next action that Link should take.
@@ -48,20 +48,25 @@ class Link():
             print(len(self.path))
 
         #Makes a new path if makeMove is called after gold is already found.
-        if self.goldGot == True:
-            self.goldGot = False #Resets the gold check
-            self.path = self.path[:self.path_index]
-            self.path += self.depthFirst()
+
 
         #If Link is standing on gold, but makeMove has been called again.
         #This means there are a number of gold present
-        if self.gameWorld.linkGlitter():
-            self.allGold.pop(0)
-            self.goldGot = True
+
+        #If Link is standing on gold, removes the gold from the list of gold, then asks the searching algorithm for
+        # a path to the next gold.
+        if self.goldNum > len(self.gameWorld.getGoldLocation()):
+            self.goldNum -= 1
+            self.path = self.path[:self.path_index]
+            self.path += self.depthFirst()
+            if len(self.path) == self.path_index:
+                quit()
 
         #If Link runs into a wumpus, the program must respond to that in a dynamic way.
         #For depth-first, the remaining locations on the original path will be forgotten, and depth-first will be called again.
         if self.gameWorld.linkSmelly() and self.goldGot == False:
+            print("In path of wumpus. Forming new path")
+
             self.path = self.path[:self.path_index]
             self.path += self.depthFirst()
             if len(self.path) == self.path_index:
@@ -69,22 +74,7 @@ class Link():
 
         self.path_index = self.path_index + 1 #Increment the index + 1. Has to be done before the return
         return self.path[self.path_index - 1] #Returns the next location for Link to move to
-        
-        # Get the location of the gold.
-        #allGold = self.gameWorld.getGoldLocation()
-       # if len(allGold) > 0:
-          #  nextGold = allGold[0]
-       # myPosition = self.gameWorld.getLinkLocation()
-        # If not at the same x coordinate, reduce the difference
-       # if nextGold.x > myPosition.x:
-      #      return Directions.EAST
-       # if nextGold.x < myPosition.x:
-      #      return Directions.WEST
-        # If not at the same y coordinate, reduce the difference
-      #  if nextGold.y > myPosition.y:
-       #     return Directions.NORTH
-      #  if nextGold.y < myPosition.y:
-      #      return Directions.SOUTH
+
 
     def depthFirst(self):
         # Method to perform depth-first search from the Link object to find the Gold objects.
@@ -96,6 +86,8 @@ class Link():
         else:
             print("No gold present?") #This is if the length of allGold is 0 from the very beginning.
             return []                 # This shouldn't happen, so the program ends early
+        allPits = self.gameWorld.getPitsLocation()
+        allWumpi = self.gameWorld.getWumpusLocation()
         
         # -Defining all the actions that Link can take-
         #Dictionary tying directions to coordinate changes. (Will probably need to move this and define elsewhere later)
@@ -145,8 +137,8 @@ class Link():
                     #  know the gold is there and will focus on avoiding wumpus. This may cause unexpected behaviour!)
 
                 #--Pit Checker--
-                if self.gameWorld.isWindy(newLocation):
-                    continue #If the location is a pit, it can't move there, so move to next move
+                #if self.gameWorld.isWindy(newLocation):
+                    #continue #If the location is a pit, it can't move there, so move to next move
 
                 #If passed all previous checks...
                 validMoves.append([newLocation, direction]) #saves location AND direction
@@ -163,13 +155,20 @@ class Link():
 
                 #If the location is in the path of a 'wumpus', it can't move there, so move to next move
                 if self.gameWorld.isSmelly(move[0]):
-                    print("Wumpus spot at", move[0].x, move[0].y)
+                    print(move[1], "would be too close to a wumpus!")
                     continue
 
+                for wumpus in allWumpi:
+                    if move[0].x == wumpus.x and move[0].y == wumpus.y:
+                        print(move[1], "would be on a wumpus! Wait, you're that close to a wumpus??")
+                        print(wumpus.x, wumpus.y)
+                        continue
+
                 #If the location is a pit, it can't move there, so move to next move
-                if self.gameWorld.isWindy(move[0]):
-                    print("Pit at", move[0].x, move[0].y)
-                    continue
+                for pit in allPits:
+                    if move[0].x == pit.x and move[0].y == pit.y:
+                        print(move[1], "is a pit! You can't go there!")
+                        continue
 
                 child = Node(move[0], node, move[1], node.depth + 1)
                 #The Node class overrides 'equals': two nodes are equal if location is the same (which means we can use "not in" here).
