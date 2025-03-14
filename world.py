@@ -301,16 +301,16 @@ class World():
     # x coordinate and have a y coordinate that differs by 1, or in
     # the same y coordinate and have an x coordinate that differs by
     # one.
-    def isAjacent(self, locList, loc):
-        for aloc in locList:
+    def isAjacent(self, allLocs, playerLoc):
+        for loc in allLocs:
             # Ajacency holds if it holds for any location in locList.
-            if aloc.x == loc.x:
-                if aloc.y == loc.y + 1 or aloc.y == loc.y - 1:
+            if loc.x == playerLoc.x:
+                if loc.y == playerLoc.y + 1 or loc.y == playerLoc.y - 1:
                     return True
                 else:
                     return False
-            elif aloc.y == loc.y:
-                if aloc.x == loc.x + 1 or aloc.x == loc.x - 1:
+            elif loc.y == playerLoc.y:
+                if loc.x == playerLoc.x + 1 or loc.x == playerLoc.x - 1:
                     return True
                 else:
                     return False

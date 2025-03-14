@@ -31,9 +31,16 @@ class Link():
         self.path = []
         self.path_index = 0
 
-        #Variable storing gold locations because the normal method is bugged?
-        self.allGold = self.gameWorld.getGoldLocation()
+        #Variable storing length of gold list initially. Used in makeMove to tell when the list has changed.
         self.goldNum = len(self.gameWorld.getGoldLocation())
+
+        #Dictionary tying directions to coordinate changes.
+        self.moveDict = {
+            Directions.NORTH: [0, 1],
+            Directions.SOUTH: [0, -1],
+            Directions.EAST: [1, 0],
+            Directions.WEST: [-1, 0]
+        }
         
     def makeMove(self):
         #Method to return the next action that Link should take.
@@ -48,11 +55,8 @@ class Link():
             print(len(self.path))
 
         #Makes a new path if makeMove is called after gold is already found.
-
-
         #If Link is standing on gold, but makeMove has been called again.
         #This means there are a number of gold present
-
         #If Link is standing on gold, removes the gold from the list of gold, then asks the searching algorithm for
         # a path to the next gold.
         if self.goldNum > len(self.gameWorld.getGoldLocation()):
@@ -64,7 +68,7 @@ class Link():
 
         #If Link runs into a wumpus, the program must respond to that in a dynamic way.
         #For depth-first, the remaining locations on the original path will be forgotten, and depth-first will be called again.
-        if self.gameWorld.linkSmelly() and self.goldGot == False:
+        if self.customAdjacent(self.gameWorld.getWumpusLocation(), self.gameWorld.getLinkLocation()) == False:
             print("In path of wumpus. Forming new path")
 
             self.path = self.path[:self.path_index]
@@ -79,28 +83,11 @@ class Link():
     def depthFirst(self):
         # Method to perform depth-first search from the Link object to find the Gold objects.
 
+        #Defining starting vars
         start = self.gameWorld.getLinkLocation() #Defines starting location
-        if len(self.allGold) > 0:
-            goal = self.allGold[0] #Takes the first gold in the list, sets it as the "goal state"
-        else:
-            print("No gold present?") #This is if the length of allGold is 0 from the very beginning.
-            return []                 # This shouldn't happen, so the program ends early
-        
-        # -Defining all the actions that Link can take-
-        #Dictionary tying directions to coordinate changes. (Will probably need to move this and define elsewhere later)
-        moveDict = {
-            Directions.NORTH: [0, 1],
-            Directions.SOUTH: [0, -1],
-            Directions.EAST: [1, 0],
-            Directions.WEST: [-1, 0]
-        }
-
-        #Storing max bound values as temp vars (grabbing them all the time is inefficient)
-        maxX = self.gameWorld.maxX
-        maxY = self.gameWorld.maxY
-
+        goal = self.gameWorld.getGoldLocation()[0] #Takes the first gold in the list, sets it as the "goal state"
+        maxX = self.gameWorld.maxX; maxY = self.gameWorld.maxY
         node = Node(start, None, None, 0) #Defining initial node (no parent, no action, depth = 0)
-
         frontiers = [node] #List of possible moves you can make from the present location
         explored = [] #List of locations you've explored / examined
         
@@ -117,8 +104,8 @@ class Link():
             #For loop runs through N/S/E/W (so, four times)
             for direction in self.moves:
                 newLocation = utils.Pose() #Int list to store locations to then add to validMoves
-                newLocation.x = node.location.x + moveDict[direction][0] #Retrieves coord changes from dict; Saves location to 'location'
-                newLocation.y = node.location.y + moveDict[direction][1]
+                newLocation.x = node.location.x + self.moveDict[direction][0] #Retrieves coord changes from dict; Saves location to 'location'
+                newLocation.y = node.location.y + self.moveDict[direction][1]
                 #'node.location' = the current location
 
                 #--Inbound Checker--
@@ -128,21 +115,19 @@ class Link():
                     continue #If either coord is now unchanged, recognises this as an invalid move, and moves on to next move
 
                 #--Wumpus Checker--
-                if self.gameWorld.isSmelly(newLocation):
+                if self.customAdjacent(self.gameWorld.getWumpusLocation(), newLocation) == False:
+                    print("wumpus")
                     continue #If the location is in the path of a 'wumpus', it can't move there, so move to next move
-                    #(For the record, if gold is where a wumpus path also is, the earlier placement of wumpus check means it won't
-                    #  know the gold is there and will focus on avoiding wumpus. This may cause unexpected behaviour!)
-                for wumpus in self.gameWorld.getWumpusLocation():
-                    if utils.sameLocation(move[0], wumpus):
-                        print(move[1], "would be on a wumpus!")
-                        print(wumpus.x, wumpus.y)
-                        continue
 
-                #If the location is a pit, it can't move there, so move to next move
+                #--Pit Checker--
+                wickedEvilContinue = False 
                 for pit in self.gameWorld.getPitsLocation():
-                    if utils.sameLocation(move[0], pit):
-                        print(move[1], "is a pit! You can't go there!")
-                        continue
+                    if utils.sameLocation(newLocation, pit):
+                        wickedEvilContinue = True
+                        break
+                #TODO - PLEASE find a better way of doing this!! This is so bad!! I hate this!!
+                if wickedEvilContinue == True:
+                    continue #If the location is a pit, it can't move there, so move to next move
 
                 #If passed all previous checks...
                 validMoves.append([newLocation, direction]) #saves location AND direction
@@ -158,6 +143,7 @@ class Link():
                 #move[0] = new location; move[1] = direction being moved (N/S/E/W)
                 child = Node(move[0], node, move[1], node.depth + 1)
                 #The Node class overrides 'equals': two nodes are equal if location is the same (which means we can use "not in" here).
+                
                 if child not in explored and child not in frontiers: 
                     # check for goal
                     if utils.sameLocation(child.location, goal):
@@ -180,3 +166,30 @@ class Link():
         if node.parent:            
             self.recoverPlanRecursive(node.parent, plan)
             plan.append(node.action)
+
+    #My own wumpus checker, because the built in one seems broken
+    def customAdjacent(self, allLocs, playerLoc):
+        tempLoc = utils.Pose() #Makes a temporary pose to mess with
+
+        #For loop that cycles through all locations in provided list of locations (presumed Wumpus)
+        for loc in allLocs:
+
+            #If the location is the same as the player location (this should never happen)
+            if utils.sameLocation(loc, playerLoc):
+                return False
+            
+            #
+            for direction in self.moves:
+                tempLoc.x = loc.x + self.moveDict[direction][0]
+                tempLoc.y = loc.y + self.moveDict[direction][1]
+
+                if utils.sameLocation(tempLoc, playerLoc):
+
+                    #To cover evil edge case where Wumpus is standing next to gold
+                    for gold in self.gameWorld.getGoldLocation():
+                        if utils.sameLocation(tempLoc, gold):
+                            return True
+
+                    return False
+            
+        return True
