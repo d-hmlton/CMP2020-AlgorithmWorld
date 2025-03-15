@@ -25,6 +25,7 @@ def main():
     # display to it.
     gameWorld = World()
     player = Link(gameWorld)
+    player.algoPick()
     display = Dungeon(gameWorld)
 
     # Uncomment this for a printout of world state at the start
@@ -33,6 +34,7 @@ def main():
     # Show initial state
     display.update()
     time.sleep(1)
+
     # Now run...
     while not(gameWorld.isEnded()):
         gameWorld.updateLink(player.makeMove())
