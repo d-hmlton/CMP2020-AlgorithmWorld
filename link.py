@@ -45,26 +45,29 @@ class Link():
         #Variables storing the selected algorithm
         self.selectedAlgo = ""
         self.algorithms = {
-            "1": "Depth-First Search"
+            "1": "Depth-First Search",
+            "2": "Breadth-First Search"
         }
 
     def algoPick(self):
         #Method to prompt the user to select a searching algorithm
         while True:
             print("\nPlease select a searching algorithm.")
-            print("\'1\' = Depth-First Search")
-            #TODO Add more algorithms here
+            for i in self.algorithms:
+                print("\'" + i + "\' = " + self.algorithms[i])
 
             algoInput = input("> ")
             if algoInput in self.algorithms:
                 self.selectedAlgo = algoInput; print("")
                 return
             else:
-                print("ERROR - Valid input not entered. Please enter one of the numbers listed.\n")
+                print("ERROR - Valid input not entered. Please enter one of the numbers listed.")
 
     def algoRun(self):
         if self.selectedAlgo == "1":
             return self.depthFirst()
+        if self.selectedAlgo == "2":
+            return self.breadthFirst()
 
     def makeMove(self):
         #Method to return the next action that Link should take.
@@ -96,14 +99,12 @@ class Link():
         self.path_index = self.path_index + 1 #Increment the index + 1. Has to be done before the return
         return self.path[self.path_index - 1] #Returns the next location for Link to move to
 
-
     def depthFirst(self):
-        # Method to perform depth-first search from the Link object to find the Gold objects.
+        #Method to perform depth-first search from the Link object to find the Gold objects.
 
         #Defining starting vars
         start = self.gameWorld.getLinkLocation() #Defines starting location
         goal = self.gameWorld.getGoldLocation()[0] #Takes the first gold in the list, sets it as the "goal state"
-        maxX = self.gameWorld.maxX; maxY = self.gameWorld.maxY
         node = Node(start, None, None, 0) #Defining initial node (no parent, no action, depth = 0)
         frontiers = [node] #List of possible moves you can make from the present location
         explored = [] #List of locations you've explored / examined
@@ -113,53 +114,16 @@ class Link():
             node = frontiers[-1] #Grab the last item from frontiers
             frontiers = frontiers[:-1] #Removes the last item / only keeps items from index 0 to second-to-last item in list
             explored.append(node) #Puts the removed item at the end of explored
-            validMoves = [] #List to store the valid moves. Empties it if it was full previously
-            
-            #For loop runs through N/S/E/W (so, four times)
-            for direction in self.moves:
-                newLocation = utils.Pose() #Int list to store locations to then add to validMoves
-                #IMPORTANT - newLocation MUST be assigned a new Pose every time this loops!! Otherwise creates a bug where
-                # all entries in validMoves share the same Pose address. This bug is inconsistent - sometimes happens, seemingly
-                # dependent on if this method is called from algoRun or makeMove - I assume it's some Python quirk? Be advised
 
-                newLocation.x = node.location.x + self.moveDict[direction][0] #Retrieves coord changes from dict; Saves to 'newlocation'
-                newLocation.y = node.location.y + self.moveDict[direction][1]
-                #'node.location' = the current location
-
-                #--Inbound Checker--
-                newLocation.x = utils.checkBounds(maxX, newLocation.x) #Sends x to "checkBounds", returns inbound coord if out of bounds
-                newLocation.y = utils.checkBounds(maxY, newLocation.y) #Same as above for y
-                if utils.sameLocation(newLocation, node.location):
-                    continue #If either coord is now unchanged, recognises this as an invalid move, and moves on to next move
-
-                #--Wumpus Checker--
-                if self.customAdjacent(self.gameWorld.getWumpusLocation(), newLocation) == False:
-                    continue #If the location is in the path of a 'wumpus', it can't move there, so move to next move
-
-                #--Pit Checker--
-                wickedEvilContinue = False 
-                for pit in self.gameWorld.getPitsLocation():
-                    if utils.sameLocation(newLocation, pit):
-                        wickedEvilContinue = True; break
-                #TODO - PLEASE find a better way of doing this!! This is so bad!! I hate this!!
-                if wickedEvilContinue == True:
-                    wickedEvilContinue = False; continue #If the location is a pit, it can't move there, so move to next move
-
-                #If passed all previous checks...
-                validMoves.append([newLocation, direction]) #saves location AND direction
-            
-            #If 'validMoves' is empty
-            if len(validMoves) == 0:
-                print("Link has no valid moves! It's all over!")
-                return []
+            #Calls the valid moves finder to return the valid moves for that location
+            validMoves = self.validMoveFinder(node)
 
             #For each move Link can take:
             for move in validMoves:
-                #Defines a child node in that direction
-                #move[0] = new location; move[1] = direction being moved (N/S/E/W)
+                #Defines a child node in that direction. move[0] = new location; move[1] = direction being moved (N/S/E/W)
                 child = Node(move[0], node, move[1], node.depth + 1)
-                #The Node class overrides 'equals': two nodes are equal if location is the same (which means we can use "not in" here).
-                
+
+                #Two nodes are equal if location is the same (which means we can use "not in" here).
                 if child not in explored and child not in frontiers: 
                     # check for goal
                     if utils.sameLocation(child.location, goal):
@@ -170,6 +134,87 @@ class Link():
         print("Failed to find a path")
         return []
     
+    def breadthFirst(self):
+        #Method to perform breadth-first search from the Link object to find the Gold objects.
+
+        #Defining starting vars
+        start = self.gameWorld.getLinkLocation() #Defines starting location
+        goal = self.gameWorld.getGoldLocation()[0] #Takes the first gold in the list, sets it as the "goal state"
+        node = Node(start, None, None, 0) #Defining initial node (no parent, no action, depth = 0)
+        frontiers = [node] #List of possible moves you can make from the present location
+        explored = [] #List of locations you've explored / examined
+
+        while frontiers:    
+            if not frontiers:
+                print("Failed to find a path")
+                return []
+
+            node = frontiers[0] # gets the first item
+            frontiers.pop(0) # removes the first item
+            explored.append(node) # adds first item to 'explored'
+
+            #Calls the valid moves finder to return the valid moves for that location
+            validMoves = self.validMoveFinder(node)
+
+            #For each move Link can take:
+            for move in validMoves:
+                #Defines a child node in that direction. move[0] = new location; move[1] = direction being moved (N/S/E/W)
+                child = Node(move[0], node, move[1], node.depth + 1)
+
+                if child not in explored and child not in frontiers:
+                    if utils.sameLocation(child.location, goal):
+                        return self.recoverPlan(child)
+                    
+                    frontiers.append(child)
+
+        print("Failed to find a path")
+        return []
+
+    def validMoveFinder(self, node):
+        validMoves = [] #List to store the valid moves
+        maxX = self.gameWorld.maxX; maxY = self.gameWorld.maxY
+        
+        #For loop runs through N/S/E/W (so, four times)
+        for direction in self.moves:
+            newLocation = utils.Pose() #Int list to store locations to then add to validMoves
+            #IMPORTANT - newLocation MUST be assigned a new Pose every time this loops!! Otherwise creates a bug where
+            # all entries in validMoves share the same Pose address. This bug is inconsistent - sometimes happens, seemingly
+            # dependent on if this method is called from algoRun or makeMove - I assume it's some Python quirk? Be advised
+
+            newLocation.x = node.location.x + self.moveDict[direction][0] #Retrieves coord changes from dict; Saves to 'newlocation'
+            newLocation.y = node.location.y + self.moveDict[direction][1]
+            #'node.location' = the current location
+
+            #--Inbound Checker--
+            newLocation.x = utils.checkBounds(maxX, newLocation.x) #Sends x to "checkBounds", returns inbound coord if out of bounds
+            newLocation.y = utils.checkBounds(maxY, newLocation.y) #Same as above for y
+            if utils.sameLocation(newLocation, node.location):
+                continue #If either coord is now unchanged, recognises this as an invalid move, and moves on to next move
+
+            #--Wumpus Checker--
+            if self.customAdjacent(self.gameWorld.getWumpusLocation(), newLocation) == False:
+                continue #If the location is in the path of a 'wumpus', it can't move there, so move to next move
+
+            #--Pit Checker--
+            wickedEvilContinue = False 
+            for pit in self.gameWorld.getPitsLocation():
+                if utils.sameLocation(newLocation, pit):
+                    wickedEvilContinue = True; break
+            #TODO - PLEASE find a better way of doing this!! This is so bad!! I hate this!!
+            if wickedEvilContinue == True:
+                wickedEvilContinue = False; continue #If the location is a pit, it can't move there, so move to next move
+
+            #If passed all previous checks...
+            validMoves.append([newLocation, direction]) #saves location AND direction
+
+        #If 'validMoves' is empty
+        if len(validMoves) == 0:
+            print("Link has no valid moves! It's all over!")
+            quit()
+        
+        #If there's a possible move
+        return validMoves
+
     #
     # Methods to retrieve the path taken to the gold once gold is found
     # 
