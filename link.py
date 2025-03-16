@@ -13,6 +13,7 @@
 import world
 import random
 import utils
+from algorithm import Algorithm
 from utils import Directions
 from node import Node
 
@@ -24,6 +25,13 @@ class Link():
         # query the state of the world
         self.gameWorld = dungeon
 
+        #Create an algorithm object, and then run the algorithm selector
+        self.algo = Algorithm(self.gameWorld)
+        self.algo.algoPick()
+
+        self.start = self.gameWorld.getLinkLocation() #Defines starting location
+        self.goal = self.gameWorld.getGoldLocation()[0] #Takes the first gold in the list, sets it as the "goal state"
+
         # What moves are possible.
         self.moves = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]
 
@@ -34,41 +42,6 @@ class Link():
         #Variable storing length of gold list initially. Used in makeMove to tell when the list has changed.
         self.goldNum = len(self.gameWorld.getGoldLocation())
 
-        #Dictionary tying directions to coordinate changes.
-        self.moveDict = {
-            Directions.NORTH: [0, 1],
-            Directions.SOUTH: [0, -1],
-            Directions.EAST: [1, 0],
-            Directions.WEST: [-1, 0]
-        }
-
-        #Variables storing the selected algorithm
-        self.selectedAlgo = ""
-        self.algorithms = {
-            "1": "Depth-First Search",
-            "2": "Breadth-First Search"
-        }
-
-    def algoPick(self):
-        #Method to prompt the user to select a searching algorithm
-        while True:
-            print("\nPlease select a searching algorithm.")
-            for i in self.algorithms:
-                print("\'" + i + "\' = " + self.algorithms[i])
-
-            algoInput = input("> ")
-            if algoInput in self.algorithms:
-                self.selectedAlgo = algoInput; print("")
-                return
-            else:
-                print("ERROR - Valid input not entered. Please enter one of the numbers listed.")
-
-    def algoRun(self):
-        if self.selectedAlgo == "1":
-            return self.depthFirst()
-        if self.selectedAlgo == "2":
-            return self.breadthFirst()
-
     def makeMove(self):
         #Method to return the next action that Link should take.
         #Asks searching algorithm(s) to return a path, and saves it to "self.path". Then returns the location in that path that
@@ -76,176 +49,32 @@ class Link():
 
         #If a path doesn't already exist, it will be created here.
         if not self.path:
-            self.path = self.algoRun()
-            if len(self.path) == 0:
-                quit()
+            self.pathAlter()
 
         #Makes a new path if makeMove is called after gold is already found - there's more gold to get
         if self.goldNum > len(self.gameWorld.getGoldLocation()):
+            self.goal = self.gameWorld.getGoldLocation()[0] #Changes the goal to the new gold location
             self.goldNum -= 1
-            self.path = self.path[:self.path_index]
-            self.path += self.algoRun()
-            if len(self.path) == self.path_index:
-                quit()
+            self.pathAlter()
 
         #If Link runs into a wumpus, the program must respond to that in a dynamic way.
         #For depth-first, the remaining locations on the original path will be forgotten, and depth-first will be called again.
-        if self.customAdjacent(self.gameWorld.getWumpusLocation(), self.gameWorld.getLinkLocation()) == False:
-            self.path = self.path[:self.path_index]
-            self.path += self.algoRun()
-            if len(self.path) == self.path_index:
-                quit()
+        if self.algo.customAdjacent(self.gameWorld.getWumpusLocation(), self.gameWorld.getLinkLocation()) == False:
+            self.pathAlter()
 
         self.path_index = self.path_index + 1 #Increment the index + 1. Has to be done before the return
         return self.path[self.path_index - 1] #Returns the next location for Link to move to
-
-    def depthFirst(self):
-        #Method to perform depth-first search from the Link object to find the Gold objects.
-
-        #Defining starting vars
-        start = self.gameWorld.getLinkLocation() #Defines starting location
-        goal = self.gameWorld.getGoldLocation()[0] #Takes the first gold in the list, sets it as the "goal state"
-        node = Node(start, None, None, 0) #Defining initial node (no parent, no action, depth = 0)
-        frontiers = [node] #List of possible moves you can make from the present location
-        explored = [] #List of locations you've explored / examined
-        
-        #Loops through every item in frontiers
-        while frontiers:
-            node = frontiers[-1] #Grab the last item from frontiers
-            frontiers = frontiers[:-1] #Removes the last item / only keeps items from index 0 to second-to-last item in list
-            explored.append(node) #Puts the removed item at the end of explored
-
-            #Calls the valid moves finder to return the valid moves for that location
-            validMoves = self.validMoveFinder(node)
-
-            #For each move Link can take:
-            for move in validMoves:
-                #Defines a child node in that direction. move[0] = new location; move[1] = direction being moved (N/S/E/W)
-                child = Node(move[0], node, move[1], node.depth + 1)
-
-                #Two nodes are equal if location is the same (which means we can use "not in" here).
-                if child not in explored and child not in frontiers: 
-                    # check for goal
-                    if utils.sameLocation(child.location, goal):
-                        return self.recoverPlan(child) #Calls a method to grab the path to the gold, then returns it
-
-                    frontiers.append(child) #If the node isn't the goal state, add to frontiers     
-
-        print("Failed to find a path")
-        return []
     
-    def breadthFirst(self):
-        #Method to perform breadth-first search from the Link object to find the Gold objects.
+    #Method that calls the algorithm to generate a path. Separated from makeMove() to remove duplication.
+    def pathAlter(self):
+        self.start = self.gameWorld.getLinkLocation()
 
-        #Defining starting vars
-        start = self.gameWorld.getLinkLocation() #Defines starting location
-        goal = self.gameWorld.getGoldLocation()[0] #Takes the first gold in the list, sets it as the "goal state"
-        node = Node(start, None, None, 0) #Defining initial node (no parent, no action, depth = 0)
-        frontiers = [node] #List of possible moves you can make from the present location
-        explored = [] #List of locations you've explored / examined
-
-        while frontiers:    
-            if not frontiers:
-                print("Failed to find a path")
-                return []
-
-            node = frontiers[0] # gets the first item
-            frontiers.pop(0) # removes the first item
-            explored.append(node) # adds first item to 'explored'
-
-            #Calls the valid moves finder to return the valid moves for that location
-            validMoves = self.validMoveFinder(node)
-
-            #For each move Link can take:
-            for move in validMoves:
-                #Defines a child node in that direction. move[0] = new location; move[1] = direction being moved (N/S/E/W)
-                child = Node(move[0], node, move[1], node.depth + 1)
-
-                if child not in explored and child not in frontiers:
-                    if utils.sameLocation(child.location, goal):
-                        return self.recoverPlan(child)
-                    
-                    frontiers.append(child)
-
-        print("Failed to find a path")
-        return []
-
-    def validMoveFinder(self, node):
-        validMoves = [] #List to store the valid moves
-        maxX = self.gameWorld.maxX; maxY = self.gameWorld.maxY
+        if not self.path:   #If no path exists yet (first time being run)
+            self.path = self.algo.algoRun(self.start, self.goal)
+        else:           #If path already exists (subsequent runs)
+            self.path = self.path[:self.path_index]
+            self.path += self.algo.algoRun(self.start, self.goal)
         
-        #For loop runs through N/S/E/W (so, four times)
-        for direction in self.moves:
-            newLocation = utils.Pose() #Int list to store locations to then add to validMoves
-            #IMPORTANT - newLocation MUST be assigned a new Pose every time this loops!! Otherwise creates a bug where
-            # all entries in validMoves share the same Pose address. This bug is inconsistent - sometimes happens, seemingly
-            # dependent on if this method is called from algoRun or makeMove - I assume it's some Python quirk? Be advised
-
-            newLocation.x = node.location.x + self.moveDict[direction][0] #Retrieves coord changes from dict; Saves to 'newlocation'
-            newLocation.y = node.location.y + self.moveDict[direction][1]
-            #'node.location' = the current location
-
-            #--Inbound Checker--
-            newLocation.x = utils.checkBounds(maxX, newLocation.x) #Sends x to "checkBounds", returns inbound coord if out of bounds
-            newLocation.y = utils.checkBounds(maxY, newLocation.y) #Same as above for y
-            if utils.sameLocation(newLocation, node.location):
-                continue #If either coord is now unchanged, recognises this as an invalid move, and moves on to next move
-
-            #--Wumpus Checker--
-            if self.customAdjacent(self.gameWorld.getWumpusLocation(), newLocation) == False:
-                continue #If the location is in the path of a 'wumpus', it can't move there, so move to next move
-
-            #--Pit Checker--
-            wickedEvilContinue = False 
-            for pit in self.gameWorld.getPitsLocation():
-                if utils.sameLocation(newLocation, pit):
-                    wickedEvilContinue = True; break
-            #TODO - PLEASE find a better way of doing this!! This is so bad!! I hate this!!
-            if wickedEvilContinue == True:
-                wickedEvilContinue = False; continue #If the location is a pit, it can't move there, so move to next move
-
-            #If passed all previous checks...
-            validMoves.append([newLocation, direction]) #saves location AND direction
-
-        #If 'validMoves' is empty
-        if len(validMoves) == 0:
-            print("Link has no valid moves! It's all over!")
+        #If the path is equal to the path index (starts at 0, and where path is cut later, so would mean no path found)
+        if len(self.path) == self.path_index: 
             quit()
-        
-        #If there's a possible move
-        return validMoves
-
-    #
-    # Methods to retrieve the path taken to the gold once gold is found
-    # 
-    def recoverPlan(self, child):
-        plan = []
-        self.recoverPlanRecursive(child, plan)
-        return plan
-        
-    def recoverPlanRecursive(self, node, plan):
-        if node.parent:            
-            self.recoverPlanRecursive(node.parent, plan)
-            plan.append(node.action)
-
-    #My own wumpus checker, because the built in one seems broken?
-    def customAdjacent(self, allLocs, playerLoc):
-        tempLoc = utils.Pose() #Makes a temporary pose to mess with
-
-        #For loop that cycles through all locations in provided list of locations (presumed Wumpus)
-        for loc in allLocs:
-            #If the location is the same as the player location - could happen during a chase?
-            if utils.sameLocation(loc, playerLoc):
-                return False
-            
-            #Cycles through the four directions and corresponding grid locations. No inbound check but shouldn't cause issues
-            for direction in self.moves:
-                tempLoc.x = loc.x + self.moveDict[direction][0]
-                tempLoc.y = loc.y + self.moveDict[direction][1]
-                if utils.sameLocation(tempLoc, playerLoc):
-                    #To cover evil edge case where Wumpus is standing next to gold
-                    for gold in self.gameWorld.getGoldLocation():
-                        if utils.sameLocation(tempLoc, gold):
-                            return True
-                    return False
-        return True

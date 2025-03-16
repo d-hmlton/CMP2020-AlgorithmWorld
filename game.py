@@ -25,7 +25,6 @@ def main():
     # display to it.
     gameWorld = World()
     player = Link(gameWorld)
-    player.algoPick()
     display = Dungeon(gameWorld)
 
     # Uncomment this for a printout of world state at the start

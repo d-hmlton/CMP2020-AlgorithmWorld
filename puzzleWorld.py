@@ -80,6 +80,8 @@ class PuzzleWorld(World):
         else:
             print("Nothing to do!")
 
+    #def makePlan(self):
+
     # A move is a list of the directions that [Link, Wumpus1, Wumpus2,
     # ...] move in.  takeStep decodes these and makes the relevant
     # change to the state. Basically it looks for the first list
