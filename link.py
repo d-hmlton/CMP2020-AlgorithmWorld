@@ -26,7 +26,7 @@ class Link():
         self.gameWorld = dungeon
 
         #Create an algorithm object, and then run the algorithm selector
-        self.algo = Algorithm(self.gameWorld)
+        self.algo = Algorithm(self.gameWorld, "game")
         self.algo.algoPick()
 
         self.start = self.gameWorld.getLinkLocation() #Defines starting location

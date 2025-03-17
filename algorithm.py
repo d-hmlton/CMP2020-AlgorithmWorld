@@ -7,8 +7,9 @@ from node import Node
 
 class Algorithm():
 
-    def __init__(self, world):
-        self.gameWorld = world
+    def __init__(self, world, mode):
+        self.world = world
+        self.mode = mode
         
         #Variables storing the selected algorithm
         self.selectedAlgo = ""
@@ -131,7 +132,7 @@ class Algorithm():
     #Takes a node's location, analyses the squares cardinally next to it, and says where it can move
     def validMoveFinder(self, node):
         validMoves = [] #List to store the valid moves
-        maxX = self.gameWorld.maxX; maxY = self.gameWorld.maxY
+        maxX = self.world.maxX; maxY = self.world.maxY
         
         #For loop runs through N/S/E/W (so, four times)
         for direction in self.moveDict:
@@ -150,18 +151,21 @@ class Algorithm():
             if utils.sameLocation(newLocation, node.location):
                 continue #If either coord is now unchanged, recognises this as an invalid move, and moves on to next move
 
-            #--Wumpus Checker--
-            if self.customAdjacent(self.gameWorld.getWumpusLocation(), newLocation) == False:
-                continue #If the location is in the path of a 'wumpus', it can't move there, so move to next move
+            #Ensures the game mode is game - wumpus and pit collision isn't a thing in puzzle mode
+            if self.mode == "game":
+                
+                #--Wumpus Checker--
+                if self.customAdjacent(self.world.getWumpusLocation(), newLocation) == False:
+                    continue #If the location is in the path of a 'wumpus', it can't move there, so move to next move
 
-            #--Pit Checker--
-            wickedEvilContinue = False 
-            for pit in self.gameWorld.getPitsLocation():
-                if utils.sameLocation(newLocation, pit):
-                    wickedEvilContinue = True; break
-            #TODO - PLEASE find a better way of doing this!! This is so bad!! I hate this!!
-            if wickedEvilContinue == True:
-                wickedEvilContinue = False; continue #If the location is a pit, it can't move there, so move to next move
+                #--Pit Checker--
+                wickedEvilContinue = False 
+                for pit in self.world.getPitsLocation():
+                    if utils.sameLocation(newLocation, pit):
+                        wickedEvilContinue = True; break
+                #TODO - PLEASE find a better way of doing this!! This is so bad!! I hate this!!
+                if wickedEvilContinue == True:
+                    wickedEvilContinue = False; continue #If the location is a pit, it can't move there, so move to next move
 
             #If passed all previous checks...
             validMoves.append([newLocation, direction]) #saves location AND direction
@@ -191,7 +195,7 @@ class Algorithm():
                 tempLoc.y = loc.y + self.moveDict[direction][1]
                 if utils.sameLocation(tempLoc, playerLoc):
                     #To cover evil edge case where Wumpus is standing next to gold
-                    for gold in self.gameWorld.getGoldLocation():
+                    for gold in self.world.getGoldLocation():
                         if utils.sameLocation(tempLoc, gold):
                             return True
                     return False
