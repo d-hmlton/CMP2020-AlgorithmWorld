@@ -57,9 +57,9 @@ class Link():
             self.goldNum -= 1
             self.pathAlter()
 
-        #If Link runs into a wumpus, the program must respond to that in a dynamic way.
-        #For depth-first, the remaining locations on the original path will be forgotten, and depth-first will be called again.
-        if self.algo.customAdjacent(self.gameWorld.getWumpusLocation(), self.gameWorld.getLinkLocation()) == False:
+        #Calls a sub-method to check if Link's next action would put him adjacent to or on top of a Wumpus.
+        # This happens when the wumpuses move from their original locations, and requires a dynamic response.
+        if self.dynamicWumpus() == False:
             self.pathAlter()
 
         self.path_index = self.path_index + 1 #Increment the index + 1. Has to be done before the return
@@ -78,3 +78,21 @@ class Link():
         #If the path is equal to the path index (starts at 0, and where path is cut later, so would mean no path found)
         if len(self.path) == self.path_index: 
             quit()
+
+    def dynamicWumpus(self):
+        #Defining what the next Link location will be
+        nextAction = self.path[self.path_index] #Fetches next action
+        coordChange = self.algo.moveDict[nextAction]
+
+        #Calculates next location based on move dictionary
+        nextLocation = utils.Pose()
+        nextLocation.x = self.gameWorld.getLinkLocation().x + coordChange[0]
+        nextLocation.y = self.gameWorld.getLinkLocation().y + coordChange[1] 
+        #print(self.gameWorld.getLinkLocation().x, self.gameWorld.getLinkLocation().y, "->", nextLocation.x, nextLocation.y)
+
+        #Checks if the next location is adjacent to (or on) a wumpus
+        if self.algo.customAdjacent(self.gameWorld.getWumpusLocation(), nextLocation) == False:
+            return False
+        
+        #If Link is in no Wumpus danger
+        return True
