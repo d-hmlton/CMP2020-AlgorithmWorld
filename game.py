@@ -33,6 +33,7 @@ def main():
     # Show initial state
     display.update()
     time.sleep(1)
+
     # Now run...
     while not(gameWorld.isEnded()):
         gameWorld.updateLink(player.makeMove())

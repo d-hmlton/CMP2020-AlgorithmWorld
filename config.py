@@ -7,7 +7,7 @@
 # Last Modified: 7/1/25
 
 # You need to enter your student number here
-myId = 12345678
+myId = 27599488
 
 # Dimensions in terms of the numbers of rows and columns
 worldLength = 10

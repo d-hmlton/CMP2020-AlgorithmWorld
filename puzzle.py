@@ -22,6 +22,7 @@ import time
 def main():
     # How we set the puzzle up. 
     puzzle = PuzzleWorld()
+    puzzle.algo.algoPick() #Prompts user to pick an algorithm
     endState = PuzzleWorld()
     # Check if we want a display of the game state
     if not config.headless:
@@ -42,8 +43,9 @@ def main():
         time.sleep(1)
 
     # Now run...
+    puzzle.plan = puzzle.makePlan(endState)
     while not(puzzle.isSolved(endState)):
-        puzzle.makeAMove(endState)
+        puzzle.makeAMove()
         if not config.headless:
             display.update()
             time.sleep(1)
