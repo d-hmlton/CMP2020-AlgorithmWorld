@@ -77,6 +77,11 @@ class Algorithm():
             #Calls the valid moves finder to return the valid moves for that location
             validMoves = self.validMoveFinder(node)
 
+            #If 'validMoves' is empty
+            if len(validMoves) == 0:
+                print("No valid moves from this location.")
+                continue
+
             #For each move Link can take:
             for move in validMoves:
                 #Defines a child node in that direction. move[0] = new location; move[1] = direction being moved (N/S/E/W)
@@ -88,7 +93,7 @@ class Algorithm():
                     if utils.sameLocation(child.location, goal):
                         return self.recoverPlan(child) #Calls a method to grab the path to the gold, then returns it
 
-                    frontiers.append(child) #If the node isn't the goal state, add to frontiers     
+                    frontiers.append(child) #If the node isn't the goal state, add to frontiers 
 
         print("Failed to find a path")
         return []
@@ -100,6 +105,7 @@ class Algorithm():
         frontiers = [node] #List of possible moves you can make from the present location
         explored = [] #List of locations you've explored / examined
 
+        #Loops through everything in frontiers
         while frontiers:    
             if not frontiers:
                 print("Failed to find a path")
@@ -111,6 +117,11 @@ class Algorithm():
 
             #Calls the valid moves finder to return the valid moves for that location
             validMoves = self.validMoveFinder(node)
+
+            #If 'validMoves' is empty
+            if len(validMoves) == 0:
+                print("No valid moves from this location.")
+                continue
 
             #For each move Link can take:
             for move in validMoves:
@@ -169,13 +180,7 @@ class Algorithm():
 
             #If passed all previous checks...
             validMoves.append([newLocation, direction]) #saves location AND direction
-
-        #If 'validMoves' is empty
-        if len(validMoves) == 0:
-            print("Link has no valid moves! It's all over!")
-            quit()
         
-        #If there's a possible move
         return validMoves
     
     #My own wumpus checker, because the built in one seems broken?
