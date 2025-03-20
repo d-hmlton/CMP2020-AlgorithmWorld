@@ -49,18 +49,21 @@ class Link():
 
         #If a path doesn't already exist, it will be created here.
         if not self.path:
-            self.pathAlter()
+            if self.pathAlter() == False:
+                return None #If a new path couldn't be created
 
         #Makes a new path if makeMove is called after gold is already found - there's more gold to get
         if self.goldNum > len(self.gameWorld.getGoldLocation()):
             self.goal = self.gameWorld.getGoldLocation()[0] #Changes the goal to the new gold location
             self.goldNum -= 1
-            self.pathAlter()
+            if self.pathAlter() == False:
+                return None #Same as above
 
         #Calls a sub-method to check if Link's next action would put him adjacent to or on top of a Wumpus.
         # This happens when the wumpuses move from their original locations, and requires a dynamic response.
         if self.dynamicWumpus() == False:
-            self.pathAlter()
+            if self.pathAlter() == False:
+                return None #Save as above
 
         self.path_index = self.path_index + 1 #Increment the index + 1. Has to be done before the return
         return self.path[self.path_index - 1] #Returns the next location for Link to move to
@@ -77,9 +80,15 @@ class Link():
         
         #If the path is equal to the path index (starts at 0, and where path is cut later, so would mean no path found)
         if len(self.path) == self.path_index: 
-            quit()
+            return False
+        
+        return True
 
     def dynamicWumpus(self):
+        #If this method was called when there is no corresponding action
+        if len(self.path) == self.path_index: 
+            return False 
+
         #Defining what the next Link location will be
         nextAction = self.path[self.path_index] #Fetches next action
         coordChange = self.algo.moveDict[nextAction]
